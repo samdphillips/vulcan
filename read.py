@@ -35,17 +35,17 @@ closers = {'(': ')', '[': ']', '{': '}'}
 def read_list(toks, opener):
     ret = []
     while True:
-        ty, val = toks.peek()
-        if ty == 'cpar':
-            if val == closers[opener]:
-                next(toks)
-                return ret
-            else:
-                raise Exception('unmatched closer, {!r} {!r}'.format(opener, val))
         try:
+            ty, val = toks.peek()
+            if ty == 'cpar':
+                if val == closers[opener]:
+                    next(toks)
+                    return ret
+                else:
+                    raise Exception('unmatched closer, {!r} {!r}'.format(opener, val))
             ret.append(read_one(toks))
         except StopIteration:
-            raise Exception('unclosed term')
+            raise Exception('unclosed term, starts with {!r}'.format(ret[0]))
 
 
 def read_all(buf):
@@ -61,4 +61,4 @@ def read_all(buf):
 
 if __name__ == '__main__':
     print(read_all('(let ([x 42])\n  x)'))
-
+    # read_all('(let')
