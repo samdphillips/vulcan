@@ -1,7 +1,11 @@
 
 
 class Expr:
-    pass
+    def visit(self, visitor, *args, **kwargs):
+        base_name = self.__class__.__name__[:-4].lower()
+        name = f'visit_{base_name}'
+        m = getattr(visitor, name)
+        return m(self, *args, **kwargs)
 
 
 class LetExpr(Expr):
@@ -17,13 +21,13 @@ class SeqExpr(Expr):
 
 
 class RefExpr(Expr):
-    def __init__(self, var):
-        self.var = var
+    def __init__(self, name):
+        self.name = name
 
 
 class DatumExpr(Expr):
-    def __init__(self, val):
-        self.val = val
+    def __init__(self, a_value):
+        self.value = a_value
 
 
 def let_sexp_to_ast(a_sexp):
