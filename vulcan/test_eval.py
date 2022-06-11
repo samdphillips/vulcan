@@ -63,6 +63,9 @@ class TestInterpreter(TestCase):
         ast0 = self.to_ast(pgm.format('odd?', 10))
         self.assertEqual(self.intp.eval(ast0), False)
 
+        ast1 = self.to_ast(pgm.format('odd?', 11))
+        self.assertEqual(self.intp.eval(ast1), True)
+
 if __name__ == '__main__':
     t = TestInterpreter()
     t.setUp()

@@ -184,6 +184,8 @@ class Interpreter(Primitives):
         self.env = self.env.extend(vars, vals)
 
     def eval(self, ast):
+        self.stack = Stack()
+        self.push_k(KHalt())
         self.state = Doing(ast)
         self.halt = False
         return self.run()
