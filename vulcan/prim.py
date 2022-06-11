@@ -4,6 +4,9 @@ class Primitives:
     def prim_is_zero(self, a):
         return a == 0
 
+    def prim_is_equal(self, a, b):
+        return a == b
+
     def prim_plus(self, a, b):
         return a + b
 

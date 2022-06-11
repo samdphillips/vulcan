@@ -1,5 +1,5 @@
 
-import lex
+from .lex import tokenize
 
 
 class Peek:
@@ -23,10 +23,14 @@ class Peek:
 
 def read_one(toks):
     ty, val = next(toks)
-    if ty == 'opar':
+    if ty == 'unknown':
+        raise Exception(f'unknown token: {val!r}')
+    elif ty == 'opar':
         return read_list(toks, val)
     elif ty == 'int':
         return int(val)
+    elif ty == 'bool':
+        return val[1] == 't'
     else:
         return val
 
@@ -49,7 +53,7 @@ def read_list(toks, opener):
 
 
 def read_all(buf):
-    toks = Peek(lex.tokenize(buf))
+    toks = Peek(tokenize(buf))
     ret = []
     try:
         while True:

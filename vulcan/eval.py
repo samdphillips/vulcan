@@ -1,6 +1,6 @@
 
-from prim import Primitives
-from type import Closure
+from .prim import Primitives
+from .type import Closure
 
 
 class EmptyEnv:
@@ -97,7 +97,7 @@ class KLetrec:
             intp.doing(self.ast.body)
         else:
             i = len(b_vals)
-            intp.push_k(KLet(self.env, b_vals, self.ast))
+            intp.push_k(KLetrec(self.env, b_vals, self.ast))
             intp.doing(self.ast.b_exprs[i])
 
 
@@ -144,7 +144,7 @@ class KRands:
         else:
             i = len(vals)
             intp.push_k(KRands(self.env, self.ast, self.rator, vals))
-            inpt.doing(self.ast.rands[i])
+            intp.doing(self.ast.rands[i])
 
 
 class Doing:
