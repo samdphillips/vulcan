@@ -15,6 +15,13 @@ class LetExpr(Expr):
         self.body = body
 
 
+class LetrecExpr(Expr):
+    def __init__(self, b_vars, b_exprs, body):
+        self.b_vars = b_vars
+        self.b_exprs = b_exprs
+        self.body = body
+
+
 class SeqExpr(Expr):
     def __init__(self, exprs):
         self.exprs = exprs
@@ -30,6 +37,19 @@ class DatumExpr(Expr):
         self.value = a_value
 
 
+class IfExpr(Expr):
+    def __init__(self, test, conseq, alter):
+        self.test = test
+        self.conseq = conseq
+        self.alter = alter
+
+
+class LambdaExpr(Expr):
+    def __init__(self, args, body):
+        self.args = args
+        self.body = body
+
+
 class AppExpr(Expr):
     def __init__(self, rator, rands):
         self.rator = rator
@@ -42,7 +62,7 @@ class PrimAppExpr(Expr):
         self.rands = rands
 
 
-def let_sexp_to_ast(a_sexp):
+def letform_sexp_to_ast(let_expr_cls, a_sexp):
     bindings = a_sexp[1]
     body = a_sexp[2:]
     b_vars = []
@@ -53,7 +73,7 @@ def let_sexp_to_ast(a_sexp):
         b_vars.append(bv)
         b_exprs.append(sexp_to_ast(be))
     body_ast = sexp_to_ast_seq(body)
-    return LetExpr(b_vars, b_exprs, body_ast)
+    return let_expr_cls(b_vars, b_exprs, body_ast)
 
 
 def sexp_to_ast(a_sexp):
@@ -65,8 +85,23 @@ def sexp_to_ast(a_sexp):
             if not isinstance(rator, str):
                 raise Exception('operator should be a symbol for primapp got: {!r}'.format(bv))
             return PrimAppExpr(rator, rands)
+        elif tag == '#%app':
+            rator = sexp_to_ast(a_sexp[1])
+            rands = sexps_to_ast(a_sexp[2:])
+            return AppExpr(rator, rands)
+        elif tag == '#%lambda':
+            args = a_sexp[1]
+            body = sexp_to_ast_seq(a_sexp[2:])
+            return LambdaExpr(args, body)
+        elif tag == '#%if':
+            test = sexp_to_ast(a_sexp[1])
+            conseq = sexp_to_ast(a_sexp[2])
+            alter = sexp_to_ast(a_sexp[3])
+            return IfExpr(test, conseq, alter)
         elif tag == '#%let':
-            return let_sexp_to_ast(a_sexp)
+            return letform_sexp_to_ast(LetExpr, a_sexp)
+        elif tag == '#%letrec':
+            return letform_sexp_to_ast(LetrecExpr, a_sexp)
         elif tag == '#%datum':
             return DatumExpr(a_sexp[1])
     elif isinstance(a_sexp, str):

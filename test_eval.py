@@ -24,3 +24,16 @@ class TestInterpreter(TestCase):
                   [y (#%datum 4)])
             (#%primapp plus x y))''')
         self.assertEqual(self.intp.eval(an_ast), 7)
+
+    def test_letrec_factorial(self):
+        an_ast = self.to_ast('''
+          (#%letrec ([factorial
+                       (#%lambda (x)
+                         (#%if (#%primapp is_zero x)
+                               (#%datum 1)
+                               (#%primapp mult x
+                                          (#%app factorial
+                                            (#%primapp sub1 x)))))])
+           (#%app factorial (#%datum 10)))
+        ''')
+        self.assertEqual(self.intp.eval(an_ast), 3628800)

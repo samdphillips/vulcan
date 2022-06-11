@@ -1,5 +1,6 @@
 
 from prim import Primitives
+from type import Closure
 
 
 class EmptyEnv:
@@ -9,8 +10,10 @@ class EmptyEnv:
     def get(self, name):
         raise Exception(f'{name} is not defined')
 
+    def set(self, name, val):
+        raise Exception(f'{name} is not defined')
 
-class Env:
+class Env(EmptyEnv):
     def __init__(self, parent, vars, vals):
         self.parent = parent
         self.binds = dict(zip(vars,vals))
@@ -20,6 +23,12 @@ class Env:
             return self.binds[name]
         else:
             return self.parent.get(name)
+
+    def set(self, name, val):
+        if name in self.binds:
+            self.binds[name] = val
+        else:
+            self.parent.set(name, val)
 
 
 class Stack:
@@ -42,11 +51,25 @@ class KHalt:
         intp.halt = True
 
 
+class KIf:
+    def __init__(self, env, ast):
+        self.env = env
+        self.ast = ast
+
+    def step(self, intp, val):
+        res = val is not False
+        intp.env = self.env
+        if res:
+            intp.doing(self.ast.conseq)
+        else:
+            intp.doing(self.ast.alter)
+
+
 class KLet:
-    def __init__(self, env, bind_vals, an_ast):
+    def __init__(self, env, bind_vals, ast):
         self.env = env
         self.bind_vals = bind_vals
-        self.ast = an_ast
+        self.ast = ast
 
     def step(self, intp, a_value):
         b_vals = self.bind_vals + [a_value]
@@ -59,10 +82,29 @@ class KLet:
             intp.doing(self.ast.b_exprs[i])
 
 
-class KPrim:
-    def __init__(self, env, an_ast, vals):
+class KLetrec:
+    def __init__(self, env, bind_vals, ast):
         self.env = env
-        self.ast = an_ast
+        self.bind_vals = bind_vals
+        self.ast = ast
+
+    def step(self, intp, a_value):
+        b_vals = self.bind_vals + [a_value]
+        if len(self.ast.b_vars) == len(b_vals):
+            for var, val in zip(self.ast.b_vars, b_vals):
+                self.env.set(var, val)
+            intp.env = self.env
+            intp.doing(self.ast.body)
+        else:
+            i = len(b_vals)
+            intp.push_k(KLet(self.env, b_vals, self.ast))
+            intp.doing(self.ast.b_exprs[i])
+
+
+class KPrim:
+    def __init__(self, env, ast, vals):
+        self.env = env
+        self.ast = ast
         self.vals = vals
 
     def step(self, intp, val):
@@ -75,9 +117,39 @@ class KPrim:
             intp.doing(self.ast.rands[i])
 
 
+class KRator:
+    def __init__(self, env, ast):
+        self.env = env
+        self.ast = ast
+
+    def step(self, intp, val):
+        if len(self.ast.rands) == 0:
+            intp.apply_procedure(val, [])
+        else:
+            intp.push_k(KRands(self.env, self.ast, val, []))
+            intp.doing(self.ast.rands[0])
+
+
+class KRands:
+    def __init__(self, env, ast, rator, vals):
+        self.env = env
+        self.ast = ast
+        self.rator = rator
+        self.vals = vals
+
+    def step(self, intp, val):
+        vals = self.vals + [val]
+        if len(self.ast.rands) == len(vals):
+            intp.apply_procedure(self.rator, vals)
+        else:
+            i = len(vals)
+            intp.push_k(KRands(self.env, self.ast, self.rator, vals))
+            inpt.doing(self.ast.rands[i])
+
+
 class Doing:
-    def __init__(self, an_ast):
-        self.ast = an_ast
+    def __init__(self, ast):
+        self.ast = ast
 
     def step(self, intp):
         intp.visit(self.ast)
@@ -99,8 +171,8 @@ class Interpreter(Primitives):
         self.stack.push(KHalt())
         self.env = EmptyEnv()
 
-    def doing(self, an_ast):
-        self.state = Doing(an_ast)
+    def doing(self, ast):
+        self.state = Doing(ast)
 
     def done(self, a_value):
         self.state = Done(a_value)
@@ -111,8 +183,8 @@ class Interpreter(Primitives):
     def extend_env(self, vars, vals):
         self.env = self.env.extend(vars, vals)
 
-    def eval(self, an_ast):
-        self.state = Doing(an_ast)
+    def eval(self, ast):
+        self.state = Doing(ast)
         self.halt = False
         return self.run()
 
@@ -124,12 +196,15 @@ class Interpreter(Primitives):
     def step(self):
         self.state.step(self)
 
+    def apply_procedure(self, proc, args):
+        proc.apply(self, args)
+
     def do_primitive(self, name, args):
         prim = getattr(self, f'prim_{name}')
         self.done(prim(*args))
 
-    def visit(self, an_ast):
-        return an_ast.visit(self)
+    def visit(self, ast):
+        return ast.visit(self)
 
     def ret(self, a_value):
         frame = self.stack.pop()
@@ -140,15 +215,32 @@ class Interpreter(Primitives):
         self.push_k(KLet(self.env, [], a_let))
         self.doing(a_let.b_exprs[0])
 
+    def visit_letrec(self, a_letrec):
+        count = len(a_letrec.b_vars)
+        self.extend_env(a_letrec.b_vars, [None] * count)
+        self.push_k(KLetrec(self.env, [], a_letrec))
+        self.doing(a_letrec.b_exprs[0])
+
+    def visit_lambda(self, a_lambda):
+        self.done(Closure(self.env, a_lambda))
+
     def visit_datum(self, a_datum):
         self.done(a_datum.value)
 
     def visit_ref(self, a_ref):
         self.done(self.env.get(a_ref.name))
 
+    def visit_if(self, an_if):
+        self.push_k(KIf(self.env, an_if))
+        self.doing(an_if.test)
+
     def visit_primapp(self, a_primapp):
         self.push_k(KPrim(self.env, a_primapp, []))
         self.doing(a_primapp.rands[0])
+
+    def visit_app(self, an_app):
+        self.push_k(KRator(self.env, an_app))
+        self.doing(an_app.rator)
 
 
 if __name__ == '__main__':
