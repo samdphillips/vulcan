@@ -30,6 +30,18 @@ class DatumExpr(Expr):
         self.value = a_value
 
 
+class AppExpr(Expr):
+    def __init__(self, rator, rands):
+        self.rator = rator
+        self.rands = rands
+
+
+class PrimAppExpr(Expr):
+    def __init__(self, name, rands):
+        self.name = name
+        self.rands = rands
+
+
 def let_sexp_to_ast(a_sexp):
     bindings = a_sexp[1]
     body = a_sexp[2:]
@@ -43,10 +55,17 @@ def let_sexp_to_ast(a_sexp):
     body_ast = sexp_to_ast_seq(body)
     return LetExpr(b_vars, b_exprs, body_ast)
 
+
 def sexp_to_ast(a_sexp):
     if isinstance(a_sexp, list):
         tag = a_sexp[0]
-        if tag == '#%let':
+        if tag == '#%primapp':
+            rator = a_sexp[1]
+            rands = sexps_to_ast(a_sexp[2:])
+            if not isinstance(rator, str):
+                raise Exception('operator should be a symbol for primapp got: {!r}'.format(bv))
+            return PrimAppExpr(rator, rands)
+        elif tag == '#%let':
             return let_sexp_to_ast(a_sexp)
         elif tag == '#%datum':
             return DatumExpr(a_sexp[1])
@@ -55,12 +74,15 @@ def sexp_to_ast(a_sexp):
     raise Exception('cannot parse {!r}'.format(a_sexp))
 
 
+def sexps_to_ast(a_list):
+    return [sexp_to_ast(e) for e in a_list]
+
+
 def sexp_to_ast_seq(a_list):
     if len(a_list) == 1:
         return sexp_to_ast(a_list[0])
     else:
-        asts = [sexp_to_ast(e) for e in a_list]
-        return SeqExpr(asts)
+        return SeqExpr(sexps_to_ast(a_list))
 
 
 if __name__ == '__main__':

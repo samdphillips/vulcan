@@ -1,4 +1,6 @@
 
+from prim import Primitives
+
 
 class EmptyEnv:
     def extend(self, vars, vals):
@@ -46,13 +48,31 @@ class KLet:
         self.bind_vals = bind_vals
         self.ast = an_ast
 
-    def step(self, inpt, a_value):
+    def step(self, intp, a_value):
         b_vals = self.bind_vals + [a_value]
         if len(self.ast.b_vars) == len(b_vals):
-            inpt.extend_env(self.ast.b_vars, b_vals)
-            inpt.doing(self.ast.body)
+            intp.extend_env(self.ast.b_vars, b_vals)
+            intp.doing(self.ast.body)
         else:
-            raise Exception("need to write")
+            i = len(b_vals)
+            intp.push_k(KLet(self.env, b_vals, self.ast))
+            intp.doing(self.ast.b_exprs[i])
+
+
+class KPrim:
+    def __init__(self, env, an_ast, vals):
+        self.env = env
+        self.ast = an_ast
+        self.vals = vals
+
+    def step(self, intp, val):
+        vals = self.vals + [val]
+        if len(self.ast.rands) == len(vals):
+            intp.do_primitive(self.ast.name, vals)
+        else:
+            i = len(vals)
+            intp.push_k(KPrim(self.env, self.ast, vals))
+            intp.doing(self.ast.rands[i])
 
 
 class Doing:
@@ -71,7 +91,7 @@ class Done:
         intp.ret(self.value)
 
 
-class Interpreter:
+class Interpreter(Primitives):
     def __init__(self):
         self.halt = True
         self.state = None
@@ -104,6 +124,10 @@ class Interpreter:
     def step(self):
         self.state.step(self)
 
+    def do_primitive(self, name, args):
+        prim = getattr(self, f'prim_{name}')
+        self.done(prim(*args))
+
     def visit(self, an_ast):
         return an_ast.visit(self)
 
@@ -113,8 +137,7 @@ class Interpreter:
         frame.step(self, a_value)
 
     def visit_let(self, a_let):
-        frame = KLet(self.env, [], a_let)
-        self.push_k(frame)
+        self.push_k(KLet(self.env, [], a_let))
         self.doing(a_let.b_exprs[0])
 
     def visit_datum(self, a_datum):
@@ -122,6 +145,10 @@ class Interpreter:
 
     def visit_ref(self, a_ref):
         self.done(self.env.get(a_ref.name))
+
+    def visit_primapp(self, a_primapp):
+        self.push_k(KPrim(self.env, a_primapp, []))
+        self.doing(a_primapp.rands[0])
 
 
 if __name__ == '__main__':
