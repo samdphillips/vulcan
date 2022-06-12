@@ -66,3 +66,10 @@ class TestInterpreter(TestCase):
         ast1 = self.to_ast(pgm.format('odd?', 11))
         self.assertEqual(self.intp.eval(ast1), True)
 
+        ast2 = self.to_ast(pgm.format('even?', 11))
+        self.assertEqual(self.intp.eval(ast2), False)
+
+        ast3 = self.to_ast(pgm.format('even?', 10))
+        self.assertEqual(self.intp.eval(ast3), True)
+
+
