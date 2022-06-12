@@ -27,6 +27,12 @@ class SeqExpr(Expr):
         self.exprs = exprs
 
 
+class SetExpr(Expr):
+    def __init__(self, name, expr):
+        self.name = name
+        self.expr = expr
+
+
 class RefExpr(Expr):
     def __init__(self, name):
         self.name = name
@@ -83,7 +89,7 @@ def sexp_to_ast(a_sexp):
             rator = a_sexp[1]
             rands = sexps_to_ast(a_sexp[2:])
             if not isinstance(rator, str):
-                raise Exception('operator should be a symbol for primapp got: {!r}'.format(bv))
+                raise Exception('operator should be an identifier for primapp got: {!r}'.format(bv))
             return PrimAppExpr(rator, rands)
         elif tag == '#%app':
             rator = sexp_to_ast(a_sexp[1])
@@ -102,6 +108,11 @@ def sexp_to_ast(a_sexp):
             return letform_sexp_to_ast(LetExpr, a_sexp)
         elif tag == '#%letrec':
             return letform_sexp_to_ast(LetrecExpr, a_sexp)
+        elif tag == '#%set!':
+            name = a_sexp[1]
+            if not isinstance(name, str):
+                raise Exception('name should be an identifier got: {!r}'.format(bv))
+            return SetExpr(a_sexp[1], sexp_to_ast(a_sexp[2]))
         elif tag == '#%datum':
             return DatumExpr(a_sexp[1])
     elif isinstance(a_sexp, str):

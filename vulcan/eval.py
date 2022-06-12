@@ -65,6 +65,17 @@ class KIf:
             intp.doing(self.ast.alter)
 
 
+class KSet:
+    def __init__(self, env, ast):
+        self.env = env
+        self.ast = ast
+
+    def step(self, intp, val):
+        intp.env = self.env
+        intp.env.set(self.ast.name, val)
+        intp.done(None)
+
+
 class KLet:
     def __init__(self, env, bind_vals, ast):
         self.env = env
@@ -99,6 +110,20 @@ class KLetrec:
             i = len(b_vals)
             intp.push_k(KLetrec(self.env, b_vals, self.ast))
             intp.doing(self.ast.b_exprs[i])
+
+
+class KSeq:
+    def __init__(self, env, ast, i):
+        self.env = env
+        self.ast = ast
+        self.i = i
+
+    def step(self, intp, a_value):
+        intp.env = self.env
+        intp.doing(self.ast.exprs[self.i])
+        next_i = self.i + 1
+        if next_i < len(self.ast.exprs):
+            intp.push_k(KSeq(self.env, self.ast, next_i))
 
 
 class KPrim:
@@ -172,6 +197,7 @@ class Interpreter(Primitives):
         self.env = EmptyEnv()
 
     def doing(self, ast):
+        assert ast is not None
         self.state = Doing(ast)
 
     def done(self, a_value):
@@ -231,6 +257,15 @@ class Interpreter(Primitives):
 
     def visit_ref(self, a_ref):
         self.done(self.env.get(a_ref.name))
+
+    def visit_set(self, a_set):
+        self.push_k(KSet(self.env, a_set))
+        self.doing(a_set.expr)
+
+    def visit_seq(self, a_seq):
+        if len(a_seq.exprs) > 1:
+            self.push_k(KSeq(self.env, a_seq, 1))
+        self.doing(a_seq.exprs[0])
 
     def visit_if(self, an_if):
         self.push_k(KIf(self.env, an_if))

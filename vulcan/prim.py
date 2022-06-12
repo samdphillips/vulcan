@@ -13,6 +13,9 @@ class Primitives:
     def prim_mult(self, a, b):
         return a * b
 
+    def prim_add1(self, a):
+        return a + 1
+
     def prim_sub1(self, a):
         return a - 1
 

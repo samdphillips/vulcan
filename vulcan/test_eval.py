@@ -73,3 +73,18 @@ class TestInterpreter(TestCase):
         self.assertEqual(self.intp.eval(ast3), True)
 
 
+    def test_mut_counter(self):
+        pgm = '''
+          (#%let ([c (#%datum 0)])
+            (#%let ([incr! (#%lambda () (#%set! c (#%primapp add1 c)))])
+              (#%app incr!)
+              (#%app incr!)
+              (#%app incr!)
+              (#%app incr!)
+              (#%app incr!)
+              c))
+        '''
+        ast = self.to_ast(pgm)
+        self.assertEqual(self.intp.eval(ast), 5)
+
+
