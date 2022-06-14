@@ -87,4 +87,12 @@ class TestInterpreter(TestCase):
         ast = self.to_ast(pgm)
         self.assertEqual(self.intp.eval(ast), 5)
 
+    def test_module_ref(self):
+        pgm = '''
+          (#%let ([c (#%datum 3)])
+            (#%primapp plus c core.c.0))
+        '''
+        ast = self.to_ast(pgm)
+        self.intp.add_module_var(('core', 'c', 0), 4)
+        self.assertEqual(self.intp.eval(ast), 7)
 

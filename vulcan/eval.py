@@ -13,6 +13,7 @@ class EmptyEnv:
     def set(self, name, val):
         raise Exception(f'{name} is not defined')
 
+
 class Env(EmptyEnv):
     def __init__(self, parent, vars, vals):
         self.parent = parent
@@ -29,6 +30,17 @@ class Env(EmptyEnv):
             self.binds[name] = val
         else:
             self.parent.set(name, val)
+
+
+class Namespace:
+    def __init__(self):
+        self.bindings = dict()
+
+    def set(self, var, val):
+        self.bindings[var] = val
+
+    def get(self, var):
+        return self.bindings[var]
 
 
 class Stack:
@@ -194,6 +206,7 @@ class Interpreter(Primitives):
         self.state = None
         self.stack = Stack()
         self.stack.push(KHalt())
+        self.namespace = Namespace()
         self.env = EmptyEnv()
 
     def doing(self, ast):
@@ -205,6 +218,9 @@ class Interpreter(Primitives):
 
     def push_k(self, k):
         self.stack.push(k)
+
+    def add_module_var(self, var, val):
+        self.namespace.set(var, val)
 
     def extend_env(self, vars, vals):
         self.env = self.env.extend(vars, vals)
@@ -256,7 +272,11 @@ class Interpreter(Primitives):
         self.done(a_datum.value)
 
     def visit_ref(self, a_ref):
-        self.done(self.env.get(a_ref.name))
+        if isinstance(a_ref.name, tuple):
+            env = self.namespace
+        else:
+            env = self.env
+        self.done(env.get(a_ref.name))
 
     def visit_set(self, a_set):
         self.push_k(KSet(self.env, a_set))

@@ -116,7 +116,13 @@ def sexp_to_ast(a_sexp):
         elif tag == '#%datum':
             return DatumExpr(a_sexp[1])
     elif isinstance(a_sexp, str):
-        return RefExpr(a_sexp)
+        if '.' in a_sexp:
+            name = a_sexp.split('.')
+            assert len(name) == 3
+            name[2] = int(name[2])
+            return RefExpr(tuple(name))
+        else:
+            return RefExpr(a_sexp)
     raise Exception('cannot parse {!r}'.format(a_sexp))
 
 
