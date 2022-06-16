@@ -84,7 +84,11 @@ class KSet:
 
     def step(self, intp, val):
         intp.env = self.env
-        intp.env.set(self.ast.name, val)
+        if isinstance(self.ast.name, tuple):
+            env = intp.namespace
+        else:
+            env = intp.env
+        env.set(self.ast.name, val)
         intp.done(None)
 
 

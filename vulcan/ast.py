@@ -108,11 +108,18 @@ def sexp_to_ast(a_sexp):
             return letform_sexp_to_ast(LetExpr, a_sexp)
         elif tag == '#%letrec':
             return letform_sexp_to_ast(LetrecExpr, a_sexp)
+        elif tag == '#%begin':
+            return sexp_to_ast_seq(a_sexp[1:])
         elif tag == '#%set!':
             name = a_sexp[1]
             if not isinstance(name, str):
                 raise Exception('name should be an identifier got: {!r}'.format(bv))
-            return SetExpr(a_sexp[1], sexp_to_ast(a_sexp[2]))
+            if '.' in name:
+                name = name.split('.')
+                assert len(name) == 3
+                name[2] = int(name[2])
+                name = tuple(name)
+            return SetExpr(name, sexp_to_ast(a_sexp[2]))
         elif tag == '#%datum':
             return DatumExpr(a_sexp[1])
     elif isinstance(a_sexp, str):

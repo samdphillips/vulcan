@@ -96,3 +96,13 @@ class TestInterpreter(TestCase):
         self.intp.add_module_var(('core', 'c', 0), 4)
         self.assertEqual(self.intp.eval(ast), 7)
 
+    def test_module_set(self):
+        pgm = '''
+          (#%begin
+            (#%set! core.c.0 (#%datum 4))
+            core.c.0)
+        '''
+        ast = self.to_ast(pgm)
+        self.intp.add_module_var(('core', 'c', 0), 42)
+        self.assertEqual(self.intp.eval(ast), 4)
+
