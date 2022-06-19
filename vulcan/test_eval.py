@@ -8,11 +8,10 @@ from vulcan.read import read_all
 
 class TestInterpreter(TestCase):
     def setUp(self):
-        from vulcan.eval import Interpreter
         self.intp = Interpreter()
 
-    def to_ast(self, s):
-        a_sexp = read_all(s)
+    def to_ast(self, a_string):
+        a_sexp = read_all(a_string)
         return sexp_to_ast_seq(a_sexp)
 
     def test_basic(self):
@@ -105,4 +104,3 @@ class TestInterpreter(TestCase):
         ast = self.to_ast(pgm)
         self.intp.add_module_var(('core', 'c', 0), 42)
         self.assertEqual(self.intp.eval(ast), 4)
-

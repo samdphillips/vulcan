@@ -4,6 +4,7 @@ from .type import Closure
 
 
 class EmptyEnv:
+    # pylint: disable=redefined-builtin
     def extend(self, vars, vals):
         return Env(self, vars, vals)
 
@@ -15,6 +16,7 @@ class EmptyEnv:
 
 
 class Env(EmptyEnv):
+    # pylint: disable=redefined-builtin
     def __init__(self, parent, vars, vals):
         self.parent = parent
         self.binds = dict(zip(vars,vals))
@@ -59,7 +61,8 @@ class Stack:
 class KHalt:
     env = EmptyEnv()
 
-    def step(self, intp, v):
+    # pylint: disable=unused-argument
+    def step(self, intp, value):
         intp.halt = True
 
 
@@ -134,7 +137,8 @@ class KSeq:
         self.ast = ast
         self.i = i
 
-    def step(self, intp, a_value):
+    # pylint: disable=unused-argument
+    def step(self, intp, value):
         intp.env = self.env
         intp.doing(self.ast.exprs[self.i])
         next_i = self.i + 1
@@ -226,6 +230,7 @@ class Interpreter(Primitives):
     def add_module_var(self, var, val):
         self.namespace.set(var, val)
 
+    # pylint: disable=redefined-builtin
     def extend_env(self, vars, vals):
         self.env = self.env.extend(vars, vals)
 
@@ -302,13 +307,3 @@ class Interpreter(Primitives):
     def visit_app(self, an_app):
         self.push_k(KRator(self.env, an_app))
         self.doing(an_app.rator)
-
-
-if __name__ == '__main__':
-    import ast, read
-    a_sexp = read.read_all('(#%let ([x (#%datum 42)])\n  x)')
-    an_ast = ast.sexp_to_ast_seq(a_sexp)
-    i = Interpreter()
-    print(i.eval(an_ast))
-
-

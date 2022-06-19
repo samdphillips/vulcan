@@ -11,16 +11,10 @@ pats = [
   ('unknown', r'.')
 ]
 
-p = re.compile('|'.join('(?P<{}>{})'.format(*g) for g in pats))
+p = re.compile('|'.join(f'(?P<{g[0]}>{g[1]})' for g in pats))
 
 def tokenize(buf):
-    for m in p.finditer(buf):
-        type = m.lastgroup
-        if type != 'space':
-            yield(type, m.group())
-
-if __name__ == '__main__':
-    buf = '(let ([x 42])\n  x)'
-    for x in tokenize(buf):
-        print(x)
-
+    for match in p.finditer(buf):
+        tok_type = match.lastgroup
+        if tok_type != 'space':
+            yield(tok_type, match.group())

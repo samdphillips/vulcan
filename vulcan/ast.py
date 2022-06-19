@@ -4,8 +4,8 @@ class Expr:
     def visit(self, visitor, *args, **kwargs):
         base_name = self.__class__.__name__[:-4].lower()
         name = f'visit_{base_name}'
-        m = getattr(visitor, name)
-        return m(self, *args, **kwargs)
+        method = getattr(visitor, name)
+        return method(self, *args, **kwargs)
 
 
 class LetExpr(Expr):
@@ -71,15 +71,15 @@ class PrimAppExpr(Expr):
 def letform_sexp_to_ast(let_expr_cls, a_sexp):
     bindings = a_sexp[1]
     body = a_sexp[2:]
-    b_vars = []
-    b_exprs = []
-    for bv, be in bindings:
-        if not isinstance(bv, str):
-            raise Exception('binding should be a symbol got: {!r}'.format(bv))
-        b_vars.append(bv)
-        b_exprs.append(sexp_to_ast(be))
+    bind_vars = []
+    bind_exprs = []
+    for bind_var, bind_expr in bindings:
+        if not isinstance(bind_var, str):
+            raise Exception(f'binding should be a symbol got: {bind_var!r}')
+        bind_vars.append(bind_var)
+        bind_exprs.append(sexp_to_ast(bind_expr))
     body_ast = sexp_to_ast_seq(body)
-    return let_expr_cls(b_vars, b_exprs, body_ast)
+    return let_expr_cls(bind_vars, bind_exprs, body_ast)
 
 
 def sexp_to_ast(a_sexp):
@@ -89,7 +89,7 @@ def sexp_to_ast(a_sexp):
             rator = a_sexp[1]
             rands = sexps_to_ast(a_sexp[2:])
             if not isinstance(rator, str):
-                raise Exception('operator should be an identifier for primapp got: {!r}'.format(bv))
+                raise Exception(f'operator should be an identifier for primapp got: {rator!r}')
             return PrimAppExpr(rator, rands)
         elif tag == '#%app':
             rator = sexp_to_ast(a_sexp[1])
@@ -113,7 +113,7 @@ def sexp_to_ast(a_sexp):
         elif tag == '#%set!':
             name = a_sexp[1]
             if not isinstance(name, str):
-                raise Exception('name should be an identifier got: {!r}'.format(bv))
+                raise Exception(f'name should be an identifier got: {name!r}')
             if '.' in name:
                 name = name.split('.')
                 assert len(name) == 3
@@ -130,7 +130,7 @@ def sexp_to_ast(a_sexp):
             return RefExpr(tuple(name))
         else:
             return RefExpr(a_sexp)
-    raise Exception('cannot parse {!r}'.format(a_sexp))
+    raise Exception(f'cannot parse {a_sexp!r}')
 
 
 def sexps_to_ast(a_list):
@@ -142,10 +142,3 @@ def sexp_to_ast_seq(a_list):
         return sexp_to_ast(a_list[0])
     else:
         return SeqExpr(sexps_to_ast(a_list))
-
-
-if __name__ == '__main__':
-    import read
-    seq = read.read_all('(#%let ([x (#%datum 42)])\n  x)')
-    print(sexp_to_ast_seq(seq))
-

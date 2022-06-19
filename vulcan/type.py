@@ -8,4 +8,3 @@ class Closure:
     def apply(self, intp, vals):
         intp.env = self.env.extend(self.ast.args, vals)
         intp.doing(self.ast.body)
-

@@ -1,4 +1,4 @@
-
+# pylint: disable=invalid-name
 
 class Primitives:
     def prim_is_zero(self, a):
@@ -18,5 +18,3 @@ class Primitives:
 
     def prim_sub1(self, a):
         return a - 1
-
-

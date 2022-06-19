@@ -22,17 +22,17 @@ class Peek:
 
 
 def read_one(toks):
-    ty, val = next(toks)
-    if ty == 'unknown':
-        raise Exception(f'unknown token: {val!r}')
-    elif ty == 'opar':
-        return read_list(toks, val)
-    elif ty == 'int':
-        return int(val)
-    elif ty == 'bool':
-        return val[1] == 't'
+    tok_type, tok_value = next(toks)
+    if tok_type == 'unknown':
+        raise Exception(f'unknown token: {tok_value!r}')
+    elif tok_type == 'opar':
+        return read_list(toks, tok_value)
+    elif tok_type == 'int':
+        return int(tok_value)
+    elif tok_type == 'bool':
+        return tok_value[1] == 't'
     else:
-        return val
+        return tok_value
 
 
 closers = {'(': ')', '[': ']', '{': '}'}
@@ -40,16 +40,17 @@ def read_list(toks, opener):
     ret = []
     while True:
         try:
-            ty, val = toks.peek()
-            if ty == 'cpar':
-                if val == closers[opener]:
+            tok_type, tok_value = toks.peek()
+            if tok_type == 'cpar':
+                if tok_value == closers[opener]:
                     next(toks)
                     return ret
                 else:
-                    raise Exception('unmatched closer, {!r} {!r}'.format(opener, val))
+                    raise Exception(f'unmatched closer, {opener!r} {tok_value!r}')
             ret.append(read_one(toks))
         except StopIteration:
-            raise Exception('unclosed term, starts with {!r}'.format(ret[0]))
+            # pylint: disable=raise-missing-from
+            raise Exception(f'unclosed term, starts with {ret[0]!r}')
 
 
 def read_all(buf):
