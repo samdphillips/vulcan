@@ -22,48 +22,48 @@ class TestInterpreter(TestCase):
         an_ast = self.to_ast('''
           (#%let ([x (#%datum 3)]
                   [y (#%datum 4)])
-            (#%primapp plus x y))''')
+            (#%prim plus x y))''')
         self.assertEqual(self.intp.eval(an_ast), 7)
 
     def test_letrec_factorial(self):
         an_ast = self.to_ast('''
-          (#%let ([factorial (#%primapp box (#%datum #undefined))])
-            (#%primapp set_box
+          (#%let ([factorial (#%prim box (#%datum #undefined))])
+            (#%prim set_box
                        factorial
                        (#%lambda (x)
-                         (#%if (#%primapp is_zero x)
+                         (#%if (#%prim is_zero x)
                                (#%datum 1)
-                               (#%primapp mult x
-                                          (#%app (#%primapp unbox factorial)
-                                            (#%primapp sub1 x))))))
-            (#%app (#%primapp unbox factorial) (#%datum 10)))
+                               (#%prim mult x
+                                          (#%app (#%prim unbox factorial)
+                                            (#%prim sub1 x))))))
+            (#%app (#%prim unbox factorial) (#%datum 10)))
         ''')
         self.assertEqual(self.intp.eval(an_ast), 3628800)
 
     def test_odd_even(self):
         pgm = '''
-          (#%let ([= (#%lambda (a b) (#%primapp is_equal a b))]
-                  [odd? (#%primapp box (#%datum #undefined))]
-                  [even? (#%primapp box (#%datum #undefined))])
-            (#%primapp set_box
+          (#%let ([= (#%lambda (a b) (#%prim is_equal a b))]
+                  [odd? (#%prim box (#%datum #undefined))]
+                  [even? (#%prim box (#%datum #undefined))])
+            (#%prim set_box
                        odd?
                        (#%lambda (n)
                          (#%let ([z (#%app = n (#%datum 1))])
                            (#%if z
                              z
-                             (#%if (#%primapp is_zero n)
+                             (#%if (#%prim is_zero n)
                                (#%datum #f)
-                               (#%app (#%primapp unbox even?) (#%primapp sub1 n)))))))
-            (#%primapp set_box
+                               (#%app (#%prim unbox even?) (#%prim sub1 n)))))))
+            (#%prim set_box
                        even?
                        (#%lambda (n)
-                         (#%let ([z (#%primapp is_zero n)])
+                         (#%let ([z (#%prim is_zero n)])
                            (#%if z
                              z
                              (#%if (#%app = n (#%datum 1))
                                (#%datum #f)
-                               (#%app (#%primapp unbox odd?) (#%primapp sub1 n)))))))
-            (#%app (#%primapp unbox {}) (#%datum {})))
+                               (#%app (#%prim unbox odd?) (#%prim sub1 n)))))))
+            (#%app (#%prim unbox {}) (#%datum {})))
         '''
         ast0 = self.to_ast(pgm.format('odd?', 10))
         self.assertEqual(self.intp.eval(ast0), False)
@@ -80,14 +80,14 @@ class TestInterpreter(TestCase):
 
     def test_mut_counter(self):
         pgm = '''
-          (#%let ([c (#%primapp box (#%datum 0))])
-            (#%let ([incr! (#%lambda () (#%primapp set_box c (#%primapp add1 (#%primapp unbox c))))])
+          (#%let ([c (#%prim box (#%datum 0))])
+            (#%let ([incr! (#%lambda () (#%prim set_box c (#%prim add1 (#%prim unbox c))))])
               (#%app incr!)
               (#%app incr!)
               (#%app incr!)
               (#%app incr!)
               (#%app incr!)
-              (#%primapp unbox c)))
+              (#%prim unbox c)))
         '''
         ast = self.to_ast(pgm)
         self.assertEqual(self.intp.eval(ast), 5)

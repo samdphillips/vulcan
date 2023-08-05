@@ -72,7 +72,7 @@ def let_sexp_to_ast(a_sexp):
 def sexp_to_ast(a_sexp):
     if isinstance(a_sexp, list):
         tag = a_sexp[0]
-        if tag == '#%primapp':
+        if tag == '#%prim':
             rator = a_sexp[1]
             rands = sexps_to_ast(a_sexp[2:])
             if not isinstance(rator, str):
