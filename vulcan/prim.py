@@ -1,6 +1,21 @@
 # pylint: disable=invalid-name
 
+from .type import Box, undefined
+
+
 class Primitives:
+    def prim_box(self, value):
+        return Box(value)
+
+    def prim_set_box(self, box, value):
+        box.value = value
+        return None
+
+    def prim_unbox(self, box):
+        if box.value is undefined:
+            raise Error('undefined variable accessed')
+        return box.value
+
     def prim_is_zero(self, a):
         return a == 0
 

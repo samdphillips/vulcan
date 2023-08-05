@@ -1,5 +1,6 @@
 
 from .lex import tokenize
+from .type import undefined
 
 
 class Peek:
@@ -31,6 +32,8 @@ def read_one(toks):
         return int(tok_value)
     elif tok_type == 'bool':
         return tok_value[1] == 't'
+    elif tok_type == 'undefined':
+        return undefined
     else:
         return tok_value
 

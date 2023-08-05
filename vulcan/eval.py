@@ -11,9 +11,6 @@ class EmptyEnv:
     def get(self, name):
         raise Exception(f'{name} is not defined')
 
-    def set(self, name, val):
-        raise Exception(f'{name} is not defined')
-
 
 class Env(EmptyEnv):
     # pylint: disable=redefined-builtin
@@ -26,23 +23,6 @@ class Env(EmptyEnv):
             return self.binds[name]
         else:
             return self.parent.get(name)
-
-    def set(self, name, val):
-        if name in self.binds:
-            self.binds[name] = val
-        else:
-            self.parent.set(name, val)
-
-
-class Namespace:
-    def __init__(self):
-        self.bindings = dict()
-
-    def set(self, var, val):
-        self.bindings[var] = val
-
-    def get(self, var):
-        return self.bindings[var]
 
 
 class Stack:
@@ -80,21 +60,6 @@ class KIf:
             intp.doing(self.ast.alter)
 
 
-class KSet:
-    def __init__(self, env, ast):
-        self.env = env
-        self.ast = ast
-
-    def step(self, intp, val):
-        intp.env = self.env
-        if isinstance(self.ast.name, tuple):
-            env = intp.namespace
-        else:
-            env = intp.env
-        env.set(self.ast.name, val)
-        intp.done(None)
-
-
 class KLet:
     def __init__(self, env, bind_vals, ast):
         self.env = env
@@ -109,25 +74,6 @@ class KLet:
         else:
             i = len(b_vals)
             intp.push_k(KLet(self.env, b_vals, self.ast))
-            intp.doing(self.ast.b_exprs[i])
-
-
-class KLetrec:
-    def __init__(self, env, bind_vals, ast):
-        self.env = env
-        self.bind_vals = bind_vals
-        self.ast = ast
-
-    def step(self, intp, a_value):
-        b_vals = self.bind_vals + [a_value]
-        if len(self.ast.b_vars) == len(b_vals):
-            for var, val in zip(self.ast.b_vars, b_vals):
-                self.env.set(var, val)
-            intp.env = self.env
-            intp.doing(self.ast.body)
-        else:
-            i = len(b_vals)
-            intp.push_k(KLetrec(self.env, b_vals, self.ast))
             intp.doing(self.ast.b_exprs[i])
 
 
@@ -214,7 +160,6 @@ class Interpreter(Primitives):
         self.state = None
         self.stack = Stack()
         self.stack.push(KHalt())
-        self.namespace = Namespace()
         self.env = EmptyEnv()
 
     def doing(self, ast):
@@ -226,9 +171,6 @@ class Interpreter(Primitives):
 
     def push_k(self, k):
         self.stack.push(k)
-
-    def add_module_var(self, var, val):
-        self.namespace.set(var, val)
 
     # pylint: disable=redefined-builtin
     def extend_env(self, vars, vals):
@@ -268,12 +210,6 @@ class Interpreter(Primitives):
         self.push_k(KLet(self.env, [], a_let))
         self.doing(a_let.b_exprs[0])
 
-    def visit_letrec(self, a_letrec):
-        count = len(a_letrec.b_vars)
-        self.extend_env(a_letrec.b_vars, [None] * count)
-        self.push_k(KLetrec(self.env, [], a_letrec))
-        self.doing(a_letrec.b_exprs[0])
-
     def visit_lambda(self, a_lambda):
         self.done(Closure(self.env, a_lambda))
 
@@ -281,15 +217,7 @@ class Interpreter(Primitives):
         self.done(a_datum.value)
 
     def visit_ref(self, a_ref):
-        if isinstance(a_ref.name, tuple):
-            env = self.namespace
-        else:
-            env = self.env
-        self.done(env.get(a_ref.name))
-
-    def visit_set(self, a_set):
-        self.push_k(KSet(self.env, a_set))
-        self.doing(a_set.expr)
+        self.done(self.env.get(a_ref.name))
 
     def visit_seq(self, a_seq):
         if len(a_seq.exprs) > 1:

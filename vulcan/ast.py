@@ -15,22 +15,9 @@ class LetExpr(Expr):
         self.body = body
 
 
-class LetrecExpr(Expr):
-    def __init__(self, b_vars, b_exprs, body):
-        self.b_vars = b_vars
-        self.b_exprs = b_exprs
-        self.body = body
-
-
 class SeqExpr(Expr):
     def __init__(self, exprs):
         self.exprs = exprs
-
-
-class SetExpr(Expr):
-    def __init__(self, name, expr):
-        self.name = name
-        self.expr = expr
 
 
 class RefExpr(Expr):
@@ -68,7 +55,7 @@ class PrimAppExpr(Expr):
         self.rands = rands
 
 
-def letform_sexp_to_ast(let_expr_cls, a_sexp):
+def let_sexp_to_ast(a_sexp):
     bindings = a_sexp[1]
     body = a_sexp[2:]
     bind_vars = []
@@ -79,7 +66,7 @@ def letform_sexp_to_ast(let_expr_cls, a_sexp):
         bind_vars.append(bind_var)
         bind_exprs.append(sexp_to_ast(bind_expr))
     body_ast = sexp_to_ast_seq(body)
-    return let_expr_cls(bind_vars, bind_exprs, body_ast)
+    return LetExpr(bind_vars, bind_exprs, body_ast)
 
 
 def sexp_to_ast(a_sexp):
@@ -105,31 +92,13 @@ def sexp_to_ast(a_sexp):
             alter = sexp_to_ast(a_sexp[3])
             return IfExpr(test, conseq, alter)
         elif tag == '#%let':
-            return letform_sexp_to_ast(LetExpr, a_sexp)
-        elif tag == '#%letrec':
-            return letform_sexp_to_ast(LetrecExpr, a_sexp)
+            return let_sexp_to_ast(a_sexp)
         elif tag == '#%begin':
             return sexp_to_ast_seq(a_sexp[1:])
-        elif tag == '#%set!':
-            name = a_sexp[1]
-            if not isinstance(name, str):
-                raise Exception(f'name should be an identifier got: {name!r}')
-            if '.' in name:
-                name = name.split('.')
-                assert len(name) == 3
-                name[2] = int(name[2])
-                name = tuple(name)
-            return SetExpr(name, sexp_to_ast(a_sexp[2]))
         elif tag == '#%datum':
             return DatumExpr(a_sexp[1])
     elif isinstance(a_sexp, str):
-        if '.' in a_sexp:
-            name = a_sexp.split('.')
-            assert len(name) == 3
-            name[2] = int(name[2])
-            return RefExpr(tuple(name))
-        else:
-            return RefExpr(a_sexp)
+        return RefExpr(a_sexp)
     raise Exception(f'cannot parse {a_sexp!r}')
 
 
