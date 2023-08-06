@@ -1,7 +1,7 @@
 
 from unittest import TestCase
 
-from vulcan.ast import sexp_to_ast_seq
+from vulcan.ast import parse_sexp_seq
 from vulcan.eval import Interpreter
 from vulcan.read import read_all
 
@@ -12,7 +12,7 @@ class TestInterpreter(TestCase):
 
     def to_ast(self, a_string):
         a_sexp = read_all(a_string)
-        return sexp_to_ast_seq(a_sexp)
+        return parse_sexp_seq(a_sexp)
 
     def test_basic(self):
         an_ast = self.to_ast('(#%let ([x (#%datum 42)])\n  x)')
@@ -25,18 +25,21 @@ class TestInterpreter(TestCase):
             (#%prim plus x y))''')
         self.assertEqual(self.intp.eval(an_ast), 7)
 
-    def test_letrec_factorial(self):
+    def test_recurse_factorial(self):
         an_ast = self.to_ast('''
-          (#%let ([factorial (#%prim box (#%datum #undefined))])
+          (#%let ([factorial-loc (#%prim box (#%datum #undefined))])
             (#%prim set_box
-                       factorial
+                       factorial-loc
                        (#%lambda (x)
-                         (#%if (#%prim is_zero x)
-                               (#%datum 1)
-                               (#%prim mult x
-                                          (#%app (#%prim unbox factorial)
-                                            (#%prim sub1 x))))))
-            (#%app (#%prim unbox factorial) (#%datum 10)))
+                         (#%let ([is_zero-result (#%prim is_zero x)])
+                           (#%if is_zero-result
+                                 (#%datum 1)
+                                 (#%let ([rec (#%prim unbox factorial-loc)]
+                                         [x0  (#%prim sub1 x)])
+                                   (#%let ([x1 (#%app rec x0)])
+                                     (#%prim mult x x1)))))))
+            (#%let ([factorial (#%prim unbox factorial-loc)])
+              (#%app factorial (#%datum 10))))
         ''')
         self.assertEqual(self.intp.eval(an_ast), 3628800)
 
@@ -48,22 +51,29 @@ class TestInterpreter(TestCase):
             (#%prim set_box
                        odd?
                        (#%lambda (n)
-                         (#%let ([z (#%app = n (#%datum 1))])
-                           (#%if z
-                             z
-                             (#%if (#%prim is_zero n)
-                               (#%datum #f)
-                               (#%app (#%prim unbox even?) (#%prim sub1 n)))))))
+                         (#%let ([even? (#%prim unbox even?)]
+                                 [no (#%app = n (#%datum 1))])
+                           (#%if no
+                             no
+                             (#%let ([nz (#%prim is_zero n)])
+                               (#%if nz
+                                 (#%datum #f)
+                                 (#%let ([n-1 (#%prim sub1 n)])
+                                   (#%app even? n-1))))))))
             (#%prim set_box
                        even?
                        (#%lambda (n)
-                         (#%let ([z (#%prim is_zero n)])
-                           (#%if z
-                             z
-                             (#%if (#%app = n (#%datum 1))
-                               (#%datum #f)
-                               (#%app (#%prim unbox odd?) (#%prim sub1 n)))))))
-            (#%app (#%prim unbox {}) (#%datum {})))
+                         (#%let ([odd? (#%prim unbox odd?)]
+                                 [nz (#%prim is_zero n)])
+                           (#%if nz
+                             nz
+                             (#%let ([no (#%app = n (#%datum 1))])
+                               (#%if no
+                                 (#%datum #f)
+                                 (#%let ([n-1 (#%prim sub1 n)])
+                                   (#%app odd? n-1))))))))
+            (#%let ([f (#%prim unbox {})])
+              (#%app f (#%datum {}))))
         '''
         ast0 = self.to_ast(pgm.format('odd?', 10))
         self.assertEqual(self.intp.eval(ast0), False)
@@ -81,7 +91,10 @@ class TestInterpreter(TestCase):
     def test_mut_counter(self):
         pgm = '''
           (#%let ([c (#%prim box (#%datum 0))])
-            (#%let ([incr! (#%lambda () (#%prim set_box c (#%prim add1 (#%prim unbox c))))])
+            (#%let ([incr! (#%lambda ()
+                             (#%let ([v0 (#%prim unbox c)])
+                               (#%let ([v1 (#%prim add1 v0)])
+                                 (#%prim set_box c v1))))])
               (#%app incr!)
               (#%app incr!)
               (#%app incr!)

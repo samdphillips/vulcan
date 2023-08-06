@@ -46,20 +46,6 @@ class KHalt:
         intp.halt = True
 
 
-class KIf:
-    def __init__(self, env, ast):
-        self.env = env
-        self.ast = ast
-
-    def step(self, intp, val):
-        res = val is not False
-        intp.env = self.env
-        if res:
-            intp.doing(self.ast.conseq)
-        else:
-            intp.doing(self.ast.alter)
-
-
 class KLet:
     def __init__(self, env, bind_vals, ast):
         self.env = env
@@ -90,52 +76,6 @@ class KSeq:
         next_i = self.i + 1
         if next_i < len(self.ast.exprs):
             intp.push_k(KSeq(self.env, self.ast, next_i))
-
-
-class KPrim:
-    def __init__(self, env, ast, vals):
-        self.env = env
-        self.ast = ast
-        self.vals = vals
-
-    def step(self, intp, val):
-        vals = self.vals + [val]
-        if len(self.ast.rands) == len(vals):
-            intp.do_primitive(self.ast.name, vals)
-        else:
-            i = len(vals)
-            intp.push_k(KPrim(self.env, self.ast, vals))
-            intp.doing(self.ast.rands[i])
-
-
-class KRator:
-    def __init__(self, env, ast):
-        self.env = env
-        self.ast = ast
-
-    def step(self, intp, val):
-        if len(self.ast.rands) == 0:
-            intp.apply_procedure(val, [])
-        else:
-            intp.push_k(KRands(self.env, self.ast, val, []))
-            intp.doing(self.ast.rands[0])
-
-
-class KRands:
-    def __init__(self, env, ast, rator, vals):
-        self.env = env
-        self.ast = ast
-        self.rator = rator
-        self.vals = vals
-
-    def step(self, intp, val):
-        vals = self.vals + [val]
-        if len(self.ast.rands) == len(vals):
-            intp.apply_procedure(self.rator, vals)
-        else:
-            i = len(vals)
-            intp.push_k(KRands(self.env, self.ast, self.rator, vals))
-            intp.doing(self.ast.rands[i])
 
 
 class Doing:
@@ -191,6 +131,12 @@ class Interpreter(Primitives):
     def step(self):
         self.state.step(self)
 
+    def atomic_eval(self, ast):
+        return ast.atomic_eval(self)
+
+    def make_closure(self, a_lambda):
+        return Closure(self.env, a_lambda)
+
     def apply_procedure(self, proc, args):
         proc.apply(self, args)
 
@@ -211,7 +157,7 @@ class Interpreter(Primitives):
         self.doing(a_let.b_exprs[0])
 
     def visit_lambda(self, a_lambda):
-        self.done(Closure(self.env, a_lambda))
+        self.done(self.make_closure(a_lambda))
 
     def visit_datum(self, a_datum):
         self.done(a_datum.value)
@@ -225,13 +171,17 @@ class Interpreter(Primitives):
         self.doing(a_seq.exprs[0])
 
     def visit_if(self, an_if):
-        self.push_k(KIf(self.env, an_if))
-        self.doing(an_if.test)
+        val = self.atomic_eval(an_if.test)
+        if val is not False:
+            self.doing(an_if.conseq)
+        else:
+            self.doing(an_if.alter)
 
     def visit_primapp(self, a_primapp):
-        self.push_k(KPrim(self.env, a_primapp, []))
-        self.doing(a_primapp.rands[0])
+        rands = [a.atomic_eval(self) for a in a_primapp.rands]
+        self.do_primitive(a_primapp.name, rands)
 
     def visit_app(self, an_app):
-        self.push_k(KRator(self.env, an_app))
-        self.doing(an_app.rator)
+        rator = an_app.rator.atomic_eval(self)
+        rands = [a.atomic_eval(self) for a in an_app.rands]
+        self.apply_procedure(rator, rands)
