@@ -8,8 +8,8 @@
 (struct Clos (arity fvi* ntmps body) #:transparent)
 (struct App (rator rands) #:transparent)
 (struct If (tst conseq alt) #:transparent)
-(struct Let (i rhs* body) #:transparent)
-(struct Fix (i rhs* body) #:transparent)
+(struct Let (i* rhs* body) #:transparent)
+(struct Fix (i* rhs* body) #:transparent)
 (struct Seq (e*) #:transparent)
 
 (struct KLet (e i rhs* body) #:transparent)
@@ -67,29 +67,28 @@
      (apply-closure (evatom e rator) (evatom* e rands))]
     [(If test conseq alt)
      (values (if (evatom e test) conseq alt) e k)]
-    [(Let i rhs* body)
-     (values (car rhs*) e (cons (KLet e i (cdr rhs*) body) k))]
+    [(Let i* rhs* body)
+     (values (car rhs*) e (cons (KLet e i* (cdr rhs*) body) k))]
     [(Seq (cons c c*))
      (values c e (cons (KSeq e c*) k))]
-    [(Fix i rhs* body)
+    [(Fix i* rhs* body)
      ;; assign closures to env slots
-     (for ([j (in-naturals)]
+     (for ([i (in-list i*)]
            [p (in-list rhs*)])
        (match-define (Clos arity fv* ntmps body) p)
-       (vector-set! e (+ i j) (make-closure e arity fv* ntmps body)))
+       (vector-set! e i (make-closure e arity fv* ntmps body)))
      ;; patch closure environments to use new values
-     (for ([j (in-naturals)]
+     (for ([i (in-list i*)]
            [p (in-list rhs*)]
-           #:do [(define f (vector-ref e (+ i j)))
+           #:do [(define f (vector-ref e i))
                  (define fe (closure-fvv* f))]
            #:when #t
            [k (in-naturals)]
            [fvi (in-list (Clos-fvi* p))]
-           #:when (>= fvi (+ i j)))
+           #:when (member fvi i*))
        (vector-set! fe k (vector-ref e fvi)))
      ;; continue to body
-     (values body e k)]
-    ))
+     (values body e k)]))
 
 
 (define (ev c ntmps)
@@ -103,17 +102,18 @@
   (define (cont k v)
     (match k
       [(list) v]
-      [(cons (KLet e i (list) body) k)
+      [(cons (KLet e (list i) (list) body) k)
        (vector-set! e i v)
        (step* body e k)]
-      [(cons (KLet e i (cons rhs rhs*) body) k)
+      [(cons (KLet e (cons i i*) (cons rhs rhs*) body) k)
        (vector-set! e i v)
-       (step* rhs e (cons (KLet e (add1 i) rhs* body) k))]
+       (step* rhs e (cons (KLet e i* rhs* body) k))]
       [(cons (KSeq e (list c)) k)
        (step* c e k)]
       [(cons (KSeq e (cons c c*)) k)
        (step* c e (cons (KSeq e c*) k))]))
   (step* c (make-vector ntmps) null))
+
 
 #;
 (ev (Let 0 (list (Clos 0 null 0 (Prim '+ (list (Datum 3) (Datum 4)))))
@@ -123,18 +123,23 @@
 (ev (Let 0 (list (Datum 3) (Datum 10)) (Prim '+ (list (Ref 0) (Ref 1))))
     2)
 
-(ev (Fix 0 (list (Clos 1 '(1) 2 ;; #(x even? t s)
-                       (Let 2 (list (Prim '= (list (Ref 0) (Datum 1))))
-                            (If (Ref 2)
-                                (Ref 2)
-                                (Let 3 (list (Prim 'sub1 (list (Ref 0))))
-                                     (App (Ref 1) (list (Ref 3)))))))
+(ev (Fix '(0 1)
+         (list (Clos 1 '(1) 2 ;; #(x even? t s)
+                     (Let '(2)
+                          (list (Prim '= (list (Ref 0) (Datum 1))))
+                          (If (Ref 2)
+                              (Ref 2)
+                              (Let '(3)
+                                   (list (Prim 'sub1 (list (Ref 0))))
+                                   (App (Ref 1) (list (Ref 3)))))))
 
-                 (Clos 1 '(0) 2 ;; #(x odd? t s)
-                       (Let 2 (list (Prim 'zero? (list (Ref 0))))
-                            (If (Ref 2)
-                                (Ref 2)
-                                (Let 3 (list (Prim 'sub1 (list (Ref 0))))
-                                     (App (Ref 1) (list (Ref 3))))))))
+               (Clos 1 '(0) 2 ;; #(x odd? t s)
+                     (Let '(2)
+                          (list (Prim 'zero? (list (Ref 0))))
+                          (If (Ref 2)
+                              (Ref 2)
+                              (Let '(3)
+                                   (list (Prim 'sub1 (list (Ref 0))))
+                                   (App (Ref 1) (list (Ref 3))))))))
          (App (Ref 0) (list (Datum 21))))
     2)
