@@ -91,7 +91,7 @@
      (values body e k)]))
 
 
-(define (ev c ntmps)
+(define (ev c)
   (define (step* c e k)
     (cond
       [(value? c) (cont k c)]
@@ -112,7 +112,7 @@
        (step* c e k)]
       [(cons (KSeq e (cons c c*)) k)
        (step* c e (cons (KSeq e c*) k))]))
-  (step* c (make-vector ntmps) null))
+  (step* c (vector) null))
 
 
 #;
@@ -123,23 +123,24 @@
 (ev (Let 0 (list (Datum 3) (Datum 10)) (Prim '+ (list (Ref 0) (Ref 1))))
     2)
 
-(ev (Fix '(0 1)
-         (list (Clos 1 '(1) 2 ;; #(x even? t s)
-                     (Let '(2)
-                          (list (Prim '= (list (Ref 0) (Datum 1))))
-                          (If (Ref 2)
-                              (Ref 2)
-                              (Let '(3)
-                                   (list (Prim 'sub1 (list (Ref 0))))
-                                   (App (Ref 1) (list (Ref 3)))))))
+(ev (App (Clos 0 '() 2
+               (Fix '(0 1)
+                    (list (Clos 1 '(1) 2 ;; #(x even? t s)
+                                (Let '(2)
+                                     (list (Prim '= (list (Ref 0) (Datum 1))))
+                                     (If (Ref 2)
+                                         (Ref 2)
+                                         (Let '(3)
+                                              (list (Prim 'sub1 (list (Ref 0))))
+                                              (App (Ref 1) (list (Ref 3)))))))
 
-               (Clos 1 '(0) 2 ;; #(x odd? t s)
-                     (Let '(2)
-                          (list (Prim 'zero? (list (Ref 0))))
-                          (If (Ref 2)
-                              (Ref 2)
-                              (Let '(3)
-                                   (list (Prim 'sub1 (list (Ref 0))))
-                                   (App (Ref 1) (list (Ref 3))))))))
-         (App (Ref 0) (list (Datum 21))))
-    2)
+                          (Clos 1 '(0) 2 ;; #(x odd? t s)
+                                (Let '(2)
+                                     (list (Prim 'zero? (list (Ref 0))))
+                                     (If (Ref 2)
+                                         (Ref 2)
+                                         (Let '(3)
+                                              (list (Prim 'sub1 (list (Ref 0))))
+                                              (App (Ref 1) (list (Ref 3))))))))
+                    (App (Ref 0) (list (Datum 21)))))
+         '()))
