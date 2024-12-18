@@ -79,7 +79,7 @@ class O:
         return (super().__hash__() << self.s) | self.h
 
 class TestHamt:
-    def setup(self):
+    def setup_method(self):
         self.h0 = Hamt()
         self.ka = O(8, 0x00)
         self.kb = O(8, 0x01)
