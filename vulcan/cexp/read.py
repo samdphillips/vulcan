@@ -1,6 +1,6 @@
 
 from .lex import Token, tokenize
-from .type import *
+from .type import Const, Group, Ident, Multigroup, Operator
 
 # cexpr := group [ sep group ]* sep?
 # group := term *
@@ -33,6 +33,8 @@ class Peek:
 
 
 class MultigroupBuilder:
+    tag = 'unknown'
+
     def __init__(self):
         self.separator = False
 
@@ -109,5 +111,5 @@ def read_multigroup(toks, shape):
 
 
 def read_all(s):
-   toks = Peek(tokenize(s))
-   return read_multigroup(toks, TopBuilder())
+    toks = Peek(tokenize(s))
+    return read_multigroup(toks, TopBuilder())
