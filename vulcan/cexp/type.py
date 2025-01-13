@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 class CExpr:
-    is_term = False
+    pass
 
 
 @dataclass
@@ -19,7 +19,7 @@ class Group(CExpr):
 
 
 class Term(CExpr):
-    is_term = True
+    pass
 
 
 @dataclass

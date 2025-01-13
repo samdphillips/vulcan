@@ -3,6 +3,7 @@ import pytest
 
 from vulcan.cexp.read import read_all, read_term
 from vulcan.cexp.lex import Token, tokenize
+import vulcan.cexp.type as cexp
 
 def tokenize_eof(s):
     toks = tokenize(s)
@@ -43,7 +44,7 @@ class TestCexpLex:
 class TestCexpRead:
     def test_simple_term(self):
         p = read_term(tokenize('abc'))
-        assert p.is_term
+        assert isinstance(p, cexp.Term)
 
     def test_top1(self):
         p = read_all('123 + 456')
