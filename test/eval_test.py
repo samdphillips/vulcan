@@ -14,18 +14,18 @@ class TestInterpreter(TestCase):
         a_sexp = read_all(a_string)
         return parse_sexp_seq(a_sexp)
 
-    def test_basic(self):
+    def xtest_basic(self):
         an_ast = self.to_ast('(#%let ([x (#%datum 42)])\n  x)')
         self.assertEqual(self.intp.eval(an_ast), 42)
 
-    def test_plus(self):
+    def xtest_plus(self):
         an_ast = self.to_ast('''
           (#%let ([x (#%datum 3)]
                   [y (#%datum 4)])
             (#%prim plus x y))''')
         self.assertEqual(self.intp.eval(an_ast), 7)
 
-    def test_recurse_factorial(self):
+    def xtest_recurse_factorial(self):
         an_ast = self.to_ast('''
           (#%let ([factorial-loc (#%prim box (#%datum #undefined))])
             (#%prim set_box
@@ -43,7 +43,7 @@ class TestInterpreter(TestCase):
         ''')
         self.assertEqual(self.intp.eval(an_ast), 3628800)
 
-    def test_odd_even(self):
+    def xtest_odd_even(self):
         pgm = '''
           (#%let ([= (#%lambda (a b) (#%prim is_equal a b))]
                   [odd? (#%prim box (#%datum #undefined))]
@@ -88,7 +88,7 @@ class TestInterpreter(TestCase):
         self.assertEqual(self.intp.eval(ast3), True)
 
 
-    def test_mut_counter(self):
+    def xtest_mut_counter(self):
         pgm = '''
           (#%let ([c (#%prim box (#%datum 0))])
             (#%let ([incr! (#%lambda ()

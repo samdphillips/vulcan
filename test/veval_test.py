@@ -19,3 +19,21 @@ def test_basic_datum():
 @eval_check(7)
 def test_basic_add():
     return "3 + 4"
+
+@eval_check(3628800)
+def test_recurse_factorial():
+    return """
+fix [fun factorial (n0) {
+       let [z = n0 == 1] {
+         if z {
+           1
+         } {
+           let [n1 = n0 - 1] {
+             let [r1 = factorial(n1)] { n0 * r1 }
+           }
+         }
+      }
+    }] {
+  factorial(10)
+}
+    """

@@ -11,16 +11,21 @@ class Expr:
         return method(self, *args, **kwargs)
 
 
+@dataclass
 class Let(Expr):
-    def __init__(self, b_vars, b_exprs, body):
-        self.b_vars = b_vars
-        self.b_exprs = b_exprs
-        self.body = body
+    binds: list
+    body: Expr
 
 
+@dataclass
+class Fix(Expr):
+    binds: list
+    body: Expr
+
+
+@dataclass
 class Seq(Expr):
-    def __init__(self, exprs):
-        self.exprs = exprs
+    exprs: list
 
 
 @dataclass
@@ -29,7 +34,7 @@ class Ref(Expr):
 
     def atomic_eval(self, intp):
         # XXX: better error handling
-        return intp.env.lookup(self.name, None, lambda k,v: v)
+        return intp.do_ref(self)
 
 
 @dataclass
@@ -40,17 +45,16 @@ class Datum(Expr):
         return self.value
 
 
+@dataclass
 class If(Expr):
-    def __init__(self, test, conseq, alter):
-        self.test = test
-        self.conseq = conseq
-        self.alter = alter
+    test: Expr
+    conseq : Expr
+    alter: Expr
 
-
+@dataclass
 class Fun(Expr):
-    def __init__(self, args, body):
-        self.args = args
-        self.body = body
+    args: list
+    body: Expr
 
     def atomic_eval(self, intp):
         return intp.make_closure(self)

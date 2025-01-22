@@ -24,3 +24,16 @@ def primitive(*n):
 @primitive("+")
 def add(a, b):
     return a + b
+
+@primitive("-")
+def sub(a, b):
+    return a - b
+
+@primitive("*")
+def mul(a, b):
+    return a * b
+
+@primitive("==")
+def eqn(a, b):
+    # XXX: only valid for numbers
+    return a == b

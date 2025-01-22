@@ -3,6 +3,7 @@
 # from .prim import Primitives
 # from .type import Closure
 
+from vulcan.type import Closure
 from vulcan.hamt import Hamt
 from .primitives import all_primitives
 
@@ -44,13 +45,14 @@ class KLet:
 
     def step(self, intp, a_value):
         b_vals = self.bind_vals + [a_value]
-        if len(self.ast.b_vars) == len(b_vals):
-            intp.extend_env(self.ast.b_vars, b_vals)
+        if len(self.ast.binds) == len(b_vals):
+            b_vars = [b[0] for b in self.ast.binds]
+            intp.extend_env(b_vars, b_vals)
             intp.doing(self.ast.body)
         else:
             i = len(b_vals)
             intp.push_k(KLet(self.env, b_vals, self.ast))
-            intp.doing(self.ast.b_exprs[i])
+            intp.doing(self.ast.binds[i][0])
 
 
 class KSeq:
@@ -104,7 +106,10 @@ class Interpreter:
 
     # pylint: disable=redefined-builtin
     def extend_env(self, vars, vals):
-        self.env = self.env.extend(vars, vals)
+        env = self.env
+        for name, val in zip(vars, vals):
+            env = env.insert(name, val)
+        self.env = env
 
     def eval(self, ast):
         self.stack = Stack()
@@ -138,9 +143,23 @@ class Interpreter:
         self.env = frame.env
         frame.step(self, a_value)
 
+    def visit_fix(self, a_fix):
+        names = []
+        funs = []
+        for lhs,rhs in a_fix.binds:
+            names.append(lhs)
+            funs.append(self.atomic_eval(rhs))
+        env = self.extend_env(names, funs)
+
+        # patch fun env
+        for f in funs:
+            f.env = self.env
+
+        self.doing(a_fix.body)
+
     def visit_let(self, a_let):
         self.push_k(KLet(self.env, [], a_let))
-        self.doing(a_let.b_exprs[0])
+        self.doing(a_let.binds[0][1])
 
     def visit_lambda(self, a_lambda):
         self.done(self.make_closure(a_lambda))
@@ -148,9 +167,14 @@ class Interpreter:
     def visit_datum(self, a_datum):
         self.done(a_datum.value)
 
+    def do_ref(self, a_ref):
+        # XXX: better exception
+        def missing():
+            raise Exception(f"missing binding for {a_ref.name}")
+        return self.env.lookup(a_ref.name, missing, lambda k,v: v)
+
     def visit_ref(self, a_ref):
-        # XXX: better error handling
-        self.env.lookup(a_ref.name, None, lambda k,v: self.done(v))
+        self.done(self.do_ref(a_ref))
 
     def visit_seq(self, a_seq):
         if len(a_seq.exprs) > 1:
@@ -167,9 +191,10 @@ class Interpreter:
     def visit_app(self, an_app):
         rator = an_app.rator.atomic_eval(self)
         rands = [a.atomic_eval(self) for a in an_app.rands]
+        print(f"calling {rator} with {rands}")
         self.apply_procedure(rator, rands)
 
 
 def kernel_eval(ast):
-    print(ast)
+    # print(ast)
     return Interpreter().eval(ast)
