@@ -37,3 +37,55 @@ fix [fun factorial (n0) {
   factorial(10)
 }
     """
+
+odd_even_recurse = """
+fix [fun is_odd(n) {
+       let [no = n == 1] {
+         if no {
+           no
+         } {
+           let [nz = n == 0] {
+             if nz {
+               false
+             } {
+               let [n1 = n - 1] { is_even(n1) }
+             }
+           }
+         }
+       }
+     }
+     fun is_even(n) {
+       let [nz = n == 0] {
+         if nz {
+           nz
+         } {
+           let [no = n == 1] {
+             if no {
+               false
+             } {
+               let [n1 = n - 1] { is_odd(n1) }
+             }
+           }
+         }
+       }
+     }] {
+  %s
+}
+"""
+
+@eval_check(True)
+def test_odd1():
+    return odd_even_recurse % "is_odd(1)"
+
+@eval_check(True)
+def test_even2():
+    return odd_even_recurse % "is_even(2)"
+
+@eval_check(False)
+def test_even3():
+    return odd_even_recurse % "is_even(3)"
+
+
+@eval_check(True)
+def test_even10():
+    return odd_even_recurse % "is_even(10)"

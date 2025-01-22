@@ -10,6 +10,8 @@ from .primitives import all_primitives
 
 def build_top_environment():
     r = Hamt()
+    r = r.insert('false', False)
+    r = r.insert('true', True)
     for prim in all_primitives:
         for name in prim.names:
             r = r.insert(name, prim)
@@ -191,7 +193,7 @@ class Interpreter:
     def visit_app(self, an_app):
         rator = an_app.rator.atomic_eval(self)
         rands = [a.atomic_eval(self) for a in an_app.rands]
-        print(f"calling {rator} with {rands}")
+        # print(f"calling {rator} with {rands}")
         self.apply_procedure(rator, rands)
 
 

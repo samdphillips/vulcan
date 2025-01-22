@@ -17,7 +17,7 @@ class Closure:
         self.ast = ast
 
     def apply(self, intp, vals):
-        print(f"adding {self.ast.args} <= {vals}")
+        # print(f"adding {self.ast.args} <= {vals}")
         env = intp.env
         for lhs,rhs in zip(self.ast.args, vals):
             env = env.insert(lhs, rhs)
